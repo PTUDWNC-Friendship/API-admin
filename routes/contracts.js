@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const ContractModel = require('../models/contract');
 const SubjectModel = require('../models/subject');
+const FeedbackModel = require('../models/feedback');
 const UserModel = require('../models/user');
 const modelGenerator = require("../utils/model-generator");
 
@@ -19,18 +20,54 @@ router.get("/api/:id", async (req, res) => {
 router.get("/tutor/:idStudent", async (req, res) => {
     let { idStudent } = req.params;
     let list = await ContractModel.find({_idStudent: idStudent});
-    res.json(list);
+
+    let listResult =[];
+    for(var item of list) {
+      const tutor = await UserModel.findOne({_id: item._idTutor});
+      let feedback = null;
+      if(item._idFeedback!==null) {
+         feedback = await FeedbackModel.findOne({_id: item._idFeedback});
+
+      }
+      if(feedback!==null) {
+        const resultItem = {
+            ...item._doc,
+            tutor: {...tutor._doc},
+            feedback: {...feedback._doc}
+          }
+                
+      listResult.push(resultItem);
+      } else {
+        const resultItem = {
+            ...item._doc,
+            tutor: {...tutor._doc}
+      }    
+      listResult.push(resultItem);
+    }
+}
+    res.json(listResult);
 });
 
 router.get("/student/:idTutor", async (req, res) => {
     let { idTutor } = req.params;
     let list = await ContractModel.find({_idTutor: idTutor});
-    res.json(list);
+    console.log(list);
+    let listResult =[];
+    for(var item of list) {
+      const student = await UserModel.findOne({_id: item._idStudent});
+      const resultItem = {
+        ...item._doc,
+        student: {...student._doc}
+      }
+      
+      listResult.push(resultItem);
+    }
+    res.json(listResult);
 });
 
 router.post("/insert", async (req, res) => {
-    let { _idStudent, _idTutor, _idSubject, startDate, endDate, policy, totalPrice, revenue, message, status }  = req.body;
-    var contract = modelGenerator.createContract(_idStudent, _idTutor, _idSubject, startDate, endDate, policy, totalPrice, revenue, message, status);
+    let { _idStudent, _idTutor, _idSubject, _idFeedback, startDate, endDate, createdDate, policy, hoursNumber, totalPrice, revenue, message, status }  = req.body;
+    var contract = modelGenerator.createContract(_idStudent, _idTutor, _idSubject, _idFeedback, startDate, endDate, createdDate, policy, hoursNumber, totalPrice, revenue, message, status);
     res.json(contract);
 })
 
