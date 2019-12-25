@@ -64,6 +64,19 @@ router.get("/get-all-tutors", async (req,res)=>{
   let result = [];
   for (var tutor of tutors) {
     const temp = await modelGenerator.toTutorObject(tutor);
+
+    const subjects = [];
+    for (var i = 0; i < temp.subjects.length; i+=1)
+    {
+      if (temp.subjects[i] !== '')
+      {
+        let subject = await SubjectModel.findOne({_id: temp.subjects[i]});
+        subjects.push(subject);
+      }
+    }
+    console.log(subjects);
+    temp.subjects = subjects;
+
     result.push(temp);
   }
   res.json(result);
@@ -200,14 +213,14 @@ router.post("/verify", async (req, res) => {
       to: username,
       subject: "[UberForTutor] - CONFIRM ACCOUNT",
       html: `Please click the link to confirm: <a href="${url}">${url}</a>
-      <p>The link was expired in 24h.</p>`
+      <p>The link will be expired in 24h.</p>`
     };
     transporter.sendMail(mainOptions, function(error, info) {
       if (error) {
         res.json(error);
       } else {
         console.log("Message sent: " + info.response);
-        res.json({ message: "Email was sent! Please open your mail to confirm account (Check you Spam Mailbox if you can't see in Inbox)" });
+        res.json({ message: "Email was sent! Please open the verification link in your email! (Check Spam section if you can't find it)" });
       }
     });
   } catch (error) {
@@ -230,7 +243,7 @@ router.post("/forgotpassword", async (req, res) => {
     if (user) {
       user.password = hashPassword;
     }
-    
+
     var transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -274,7 +287,7 @@ router.post("/tutor/register", async (req, res) => {
   if (user) {
     user.role = "tutor";
     user.save().catch(err => console.log(err));
-    modelGenerator.createTutor(user._id, null, null, null, null);
+    modelGenerator.createTutor(user._id, "", 0, [], []);
     const data = modelGenerator.toUserObject(user);
     res.json(data);
   }
@@ -412,7 +425,7 @@ router.get("/google/redirect", (req, res, next) => {
     { failureRedirect: "/login" },
     (error, user) => {
       if (user) {
-        
+
         req.login(user, { session: false }, err => {
           const query = {...user, _id: user._id.toString()};
           if (err) {

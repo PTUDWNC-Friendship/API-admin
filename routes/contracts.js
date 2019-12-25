@@ -8,6 +8,34 @@ const modelGenerator = require("../utils/model-generator");
 
 router.get("/api", async (req, res) => {
     let list = await ContractModel.find();
+    for (var i = 0; i < list.length; i++ ) {
+        list[i] = list[i]._doc;
+        const { _idStudent, _idTutor, _idSubject, _idFeedback } = list[i];
+
+        if (_idStudent) {
+            const resStudent = await UserModel.findOne({_id: _idStudent});
+            const student = await modelGenerator.toStudentObject(resStudent);
+            list[i] = { ...list[i], student};
+        }
+
+        if (_idTutor) {
+            const resTutor = await UserModel.findOne({_id: _idTutor});
+            const tutor = await modelGenerator.toTutorObject(resTutor);
+            list[i] = { ...list[i], tutor };
+        }
+
+        if (_idSubject) {
+            const resSubject = await SubjectModel.findOne({_id: _idSubject});
+            const subject = await modelGenerator.toSubjectObject(resSubject);
+            console.log(subject);
+            list[i] = { ...list[i], subject};
+        }
+        if (_idFeedback) {
+          const resFeedback = await FeedbackModel.findOne({_id: _idFeedback});
+          const feedback = await modelGenerator.toFeedbackObject(resFeedback);
+          list[i] = { ...list[i], feedback};
+        } 
+    }
     res.json(list);
 });
 
@@ -35,13 +63,13 @@ router.get("/tutor/:idStudent", async (req, res) => {
             tutor: {...tutor._doc},
             feedback: {...feedback._doc}
           }
-                
+
       listResult.push(resultItem);
       } else {
         const resultItem = {
             ...item._doc,
             tutor: {...tutor._doc}
-      }    
+      }
       listResult.push(resultItem);
     }
 }
@@ -51,15 +79,16 @@ router.get("/tutor/:idStudent", async (req, res) => {
 router.get("/student/:idTutor", async (req, res) => {
     let { idTutor } = req.params;
     let list = await ContractModel.find({_idTutor: idTutor});
-    console.log(list);
     let listResult =[];
     for(var item of list) {
       const student = await UserModel.findOne({_id: item._idStudent});
+      const tutor = await UserModel.findOne({_id: item._idTutor});
       const resultItem = {
         ...item._doc,
-        student: {...student._doc}
+        student: {...student._doc},
+        tutor: {...tutor._doc}
       }
-      
+
       listResult.push(resultItem);
     }
     res.json(listResult);
